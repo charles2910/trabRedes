@@ -6,7 +6,33 @@
 #include <stdlib.h>
 #include <netinet/in.h>
 #include <string.h>
-#define PORT 50500 
+#define PORT 50500
+
+// Struct para guardar sensores
+struct sensor {
+	char sensor_id[4];
+	int socket;
+	float valor;
+};
+
+// Struct para guardar atuadores
+struct atuador {
+	char atuador_id[4];
+	short atuador_ligado;
+};
+
+// Struct que representa cada incubadora, armazenando sensores e atuadores
+struct incubadora {
+	char id[4];
+	sensor t_ar;
+	sensor umidade;
+	sensor oxigenacao;
+	sensor batimentos;
+	atuador aquec_ligado;
+	atuador umid_ligado;
+	atuador circ_ligado;
+};
+
 
 int main(int argc, char const *argv[])
 {
