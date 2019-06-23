@@ -12,8 +12,8 @@ int main(int argc, char const *argv[])
 {
     int sock = 0, valread = 1;
     struct sockaddr_in serv_addr;
-    char *id = "12345671\n\0"/*malloc(24 * sizeof(char))*/;
-	char *hello1 = "1234567137.1\n\0";
+    char *hello = "13543451\n"/*malloc(24 * sizeof(char))*/;
+	char *hello1 = "1354345139.1\n";
     char buffer[1024] = {0};
     if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0)
     {

@@ -8,8 +8,16 @@
 #include <fcntl.h>
 #include <netinet/in.h>
 #include <string.h>
+
 #define PORT 50500
 #define N_INCUBADORAS 64
+#define TEMP_MAX 38
+#define TEMP_MIN 35
+#define TEMP_MED (TEMP_MAX + TEMP_MIN) / 2
+#define BAT_MIN 60
+#define UMID_MAX 85
+#define UMID_MIN 60
+#define OXI_MIN 85
 
 // Struct para guardar sensores
 typedef struct {
@@ -175,13 +183,14 @@ int filtrar(int new_socket, registro *vec) {
 
 int main(int argc, char const *argv[])
 {
-    int server_fd, new_socket = 0, new_socket1 = 0, valread = 1, flags, up = 1;
+    int server_fd, new_socket = 0, flags, valread =0, on = 1;
     struct sockaddr_in address;
     int opt = 1;
     int addrlen = sizeof(address);
-    char buffer[1024] = {0};
+    char temp[24] = {0};
     char *hello = "Hello from server";
 	registro vetor;
+	memset(&vetor, 0, sizeof(registro));
 	vetor.pos_ultima = -1;
 	/* for (int i = 0; i < N_INCUBADORAS; i++) {
 		printf("%s\n", vetor.lista[i].id);
@@ -222,38 +231,85 @@ int main(int argc, char const *argv[])
 			new_socket = filtrar(new_socket, &vetor);
 
 		for (int i = 0; i <= vetor.pos_ultima; i++) {
-			
-		}
-	}
-	printf("%s\n", vetor.lista[0].id);
-
-    //while(up > 0) {
-		/* flags = guard(fcntl(new_socket, F_GETFL), "get socket flags error");
-		guard(fcntl(new_socket, F_SETFL, flags | O_NONBLOCK),
-				"set non-blocking");
-	    valread = read( new_socket , buffer, 1024);
-		if (valread > 0) {
-	    	printf("%s\n",buffer );
-	    	send(new_socket , hello , strlen(hello) , 0 );
-	    	printf("Hello message sent\n");
-		}
-		if(new_socket1 < 1)
-			new_socket1 = accept(server_fd, (struct sockaddr *)&address,
-									(socklen_t*)&addrlen);
-
-		if(new_socket1 > 0) {
-			flags = guard(fcntl(new_socket1, F_GETFL), "get socket flags error");
-			guard(fcntl(new_socket1, F_SETFL, flags | O_NONBLOCK),
-					"set non-blocking");
-			valread = read(new_socket1 , buffer, 1024);
-			if(valread > 0) {
-				printf("%s\n",buffer);
-				send(new_socket1 , hello , strlen(hello) , 0);
-				printf("Hello message sent\n");
+			if(vetor.lista[i].t_ar.socket > 0) {
+				valread = read(vetor.lista[i].t_ar.socket, temp, 16);
+				if (valread > 0) {
+					sscanf (&temp[8],"%f",&vetor.lista[i].t_ar.valor);
+					if (vetor.lista[i].t_ar.valor > TEMP_MAX - 0.5)
+						// ligar circulador
+					else if (vetor.lista[i].t_ar.valor < TEMP_MIN + 0.5)
+						// ligar aquecedor
+					else if ((vetor.lista[i].t_ar.valor <  TEMP_MED + 0.5) &&
+								(vetor.lista[i].t_ar.valor <  TEMP_MED - 0.5))
+						// desligar atuadores
+				}
+				memset(temp, 0, 16);
+				valread = 0;
 			}
-		} */
+			if(vetor.lista[i].umidade.socket > 0) {
+				valread = read(vetor.lista[i].umidade.socket, temp, 16);
+				if (valread > 0) {
+					sscanf (&temp[9],"%f",&vetor.lista[i].umidade.valor);
+					if (vetor.lista[i].umidade.valor > UMID_MAX - 1)
+						// desligar umidificador
+					else if (vetor.lista[i].umidade.valor < UMID_MIN + 1)
+						// ligar umidificador
+				}
+				memset(temp, 0, 16);
+				valread = 0;
+			}
+			if(vetor.lista[i].oxigenacao.socket > 0) {
+				valread = read(vetor.lista[i].oxigenacao.socket, temp, 16);
+				if (valread > 0) {
+					sscanf (&temp[9],"%f",&vetor.lista[i].oxigenacao.valor);
+					if (vetor.lista[i].oxigenacao.valor < OXI_MIN)
+						// Soar alarme
+				}
+				memset(temp, 0, 16);
+				valread = 0;
+			}
+			if(vetor.lista[i].batimentos.socket > 0) {
+				valread = read(vetor.lista[i].batimentos.socket, temp, 16);
+				if (valread > 0) {
+					sscanf (&temp[9],"%f",&vetor.lista[i].batimentos.valor);
+					if (vetor.lista[i].oxigenacao.valor < BAT_MIN)
+						// Soar alarme
+				}
+				memset(temp, 0, 16);
+				valread = 0;
+			}
+			if(vetor.lista[i].aquecedor.socket > 0) {
+				valread = read(vetor.lista[i].aquecedor.socket, temp, 16);
+				if (valread > 0) {
+					sscanf (&temp[9],"%hd",&vetor.lista[i].aquecedor.atuador_ligado);
+				}
+				memset(temp, 0, 16);
+				valread = 0;
+			}
+			if(vetor.lista[i].umidificador.socket > 0) {
+				valread = read(vetor.lista[i].umidificador.socket, temp, 16);
+				if (valread > 0) {
+					sscanf (&temp[9],"%hd",&vetor.lista[i].umidificador.atuador_ligado);
+				}
+				memset(temp, 0, 16);
+				valread = 0;
+			}
+			if(vetor.lista[i].circulador.socket > 0) {
+				valread = read(vetor.lista[i].circulador.socket, temp, 16);
+				if (valread > 0) {
+					sscanf (&temp[9],"%hd",&vetor.lista[i].circulador.atuador_ligado);
+				}
+				memset(temp, 0, 16);
+				valread = 0;
+			}
+		}
+		printf("%s\n", vetor.lista[0].id);
+		printf("Hw id: %s; Valor: %f\n", vetor.lista[0].t_ar.sensor_id, vetor.lista[0].t_ar.valor);
+		printf("%s\n", vetor.lista[1].id);
+		printf("Hw id: %s; Valor: %f\n", vetor.lista[1].t_ar.sensor_id, vetor.lista[1].t_ar.valor);
+		//getchar();
+	}
 
 
-    //}
     return 0;
 }
