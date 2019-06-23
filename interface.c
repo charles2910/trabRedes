@@ -10,6 +10,9 @@
 #include <string.h>
 #define PORT 50500
 
+/**
+ * Função criada para sintetizar checagem de erros.
+ */
 int guard(int n, char * err) {
 	if (n == -1) {
 		perror(err);
@@ -25,8 +28,10 @@ int main(int argc, char const *argv[])
     char *id = "3\n\0";
 	char *message = malloc(24 * sizeof(char));
     char buffer[26] = {0};
+	// zera a memória de message
 	memset(message, 0, 16);
 
+	// cria o socket TCP
     sock = guard(socket(AF_INET, SOCK_STREAM, 0), "\nSocket creation error\n");
 
 
@@ -37,18 +42,17 @@ int main(int argc, char const *argv[])
     guard(inet_pton(AF_INET, "127.0.0.1", &serv_addr.sin_addr),
 						"\nInvalid address/ Address not supported\n");
 
+	// Tenta estabelecer conexão com o servidor
     guard(connect(sock, (struct sockaddr *)&serv_addr, sizeof(serv_addr)),
 						"\nConnection Failed \n");
 
+	// Estabelece o socket como não bloqueante
 	int flags = guard(fcntl(sock, F_GETFL), "get socket flags error");
 	guard(fcntl(sock, F_SETFL, flags | O_NONBLOCK),
 			"set non-blocking");
 
+	/*Manda mensagem inicial "3\n\0" indicando conexão de interface do usuario*/
 	send(sock , id , strlen(id) , 0);
-
-	/* int fd1 = fileno(stdin);
-	int fd2 = fileno(stdout);
-	printf("%d %d\n", fd1, fd2); */
 
 	// setando stdin como nao bloqueante
 	int flags1;
@@ -62,14 +66,18 @@ int main(int argc, char const *argv[])
 
     while(up > 0) {
     	gets(&message[1]);
+		// se foi passado um comando para checar parametros de incubadora,
+		// entra no laço para mandar mensagem para o gerenciador
 		if(message[1] != 0) {
 			message[0] = '4';
 	    	send(sock , message , strlen(message) , 0 );
 	    	printf("Get parameters message sent\n");
 			memset(message, 0, 24);
 		}
+		// checa se houve mensagens enviadas pelo gerenciador
 	    valread = read( sock , buffer, 26);
 		if (valread > 0) {
+			// Código '4' indica comunicação entre gerenciador e interface
 			if (buffer[0] == '4') {
 				char inc[4] = {0}, t_ar[5] ={0}, umid[5] = {0}, oxig[5] = {0}, bat[5] = {0};
 
@@ -86,11 +94,13 @@ int main(int argc, char const *argv[])
 				printf("Batimentos: %s\n",bat);
 				memset(buffer, 0, 26);
 			}
+			// código '5' indica alerta de batimentos baixos
 			else if (buffer[0] == '5') {
 				char bat_id[4] = {0};
 				strcpy(bat_id, &buffer[1]);
 				printf("Alerta Urgente\nBatimentos baixos na incubadora %s\n", bat_id);
 			}
+			// código '6' indica alerta de oxigenação baixa
 			else if (buffer[0] == '6') {
 				char oxi_id[4] = {0};
 				strcpy(oxi_id, buffer[1]);
