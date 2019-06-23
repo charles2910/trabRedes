@@ -23,8 +23,8 @@ int main(int argc, char const *argv[])
     int sock = 0, valread = 1, up = 1;
     struct sockaddr_in serv_addr;
     char *id = "3\n\0";
-	char *message = malloc(16 * sizeof(char));
-    char buffer[24] = {0};
+	char *message = malloc(24 * sizeof(char));
+    char buffer[26] = {0};
 	memset(message, 0, 16);
 
     sock = guard(socket(AF_INET, SOCK_STREAM, 0), "\nSocket creation error\n");
@@ -61,29 +61,30 @@ int main(int argc, char const *argv[])
 	printf("(id: 001, 002, 003 ...)\n");
 
     while(up > 0) {
-    	gets(message);
-		if(message[0] != 0) {
+    	gets(&message[1]);
+		if(message[1] != 0) {
+			message[0] = '4';
 	    	send(sock , message , strlen(message) , 0 );
 	    	printf("Get parameters message sent\n");
-			memset(message, 0, 16);
+			memset(message, 0, 24);
 		}
-	    valread = read( sock , buffer, 24);
+	    valread = read( sock , buffer, 26);
 		if (valread > 0) {
 			if (buffer[0] == '4') {
-				char inc[4] = {0}, t_ar ={0}, umid = {0}, oxig = {0}, bat = {0};
+				char inc[4] = {0}, t_ar[5] ={0}, umid[5] = {0}, oxig[5] = {0}, bat[5] = {0};
 
-				strncpy(inc, buffer[1], 4);
-				strncpy(t_ar, buffer[4], 4);
-				strncpy(umid, buffer[8], 4);
-				strncpy(oxig, buffer[12], 4);
-				strncpy(bat, buffer[16], 4);
+				strncpy(inc, &buffer[1], 4);
+				strncpy(t_ar, &buffer[5], 5);
+				strncpy(umid, &buffer[10], 5);
+				strncpy(oxig, &buffer[15], 5);
+				strncpy(bat, &buffer[20], 5);
 
-	    		printf("Parâmetros na incubadora %s\n",buffer);
-				printf("Temperatura: %s\n",buffer);
-				printf("Umidade: %s\n",buffer);
-				printf("Oxigenação: %s\n",buffer);
-				printf("Batimentos: %s\n",buffer);
-				memset(buffer, 0, 16);
+	    		printf("Parâmetros na incubadora %s\n",inc);
+				printf("Temperatura: %s\n",t_ar);
+				printf("Umidade: %s\n",umid);
+				printf("Oxigenação: %s\n",oxig);
+				printf("Batimentos: %s\n",bat);
+				memset(buffer, 0, 26);
 			}
 			else if (buffer[0] == '5') {
 				char bat_id[4] = {0};

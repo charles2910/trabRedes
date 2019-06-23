@@ -19,28 +19,41 @@
 #define UMID_MIN 60
 #define OXI_MIN 85
 
-// Struct para guardar interface
+/**
+ * Struct para armazenar o socket de comunicação com o processo que realiza
+ * a interface com o usuário. Contém um buffer, o socket e um "boolean"
+ * para indicar se a interface está conectada com o gerenciador/servidor
+ * (0 => desconectado; 1 => conectado).
+ */
 typedef struct {
 	char buffer[16];
 	int socket;
 	short conectado;
 } interface;
 
-// Struct para guardar sensores
+/**
+ * Struct para armazenar sensores. Contém id único, socket e último valor
+ * recebido.
+ */
 typedef struct {
 	char sensor_id[4];
 	int socket;
 	float valor;
 } sensor;
 
-// Struct para guardar atuadores
+/**
+ * Struct para armazenar atuadores. Contendo id único, socket e um "boolean"
+ * para indicar se o atuador está ligado (0 => desligado; 1 => ligado).
+ */
 typedef struct {
 	char atuador_id[4];
 	int socket;
 	short atuador_ligado;
 } atuador;
 
-// Struct que representa cada incubadora, armazenando sensores e atuadores
+/**
+ * Struct que representa cada incubadora, armazenando id, sensores e atuadores.
+ */
 typedef struct {
 	char id[4];
 	sensor t_ar;
@@ -52,12 +65,19 @@ typedef struct {
 	atuador circulador;
 } incubadora;
 
+/**
+ * Struct principal. Armazena o socket da interface com o usuário, a última
+ * posição do vetor de incubadoras ocupada e o próprio vetor de incubadoras.
+ */
 typedef struct {
 	incubadora lista[N_INCUBADORAS];
 	int pos_ultima;
 	interface cliente;
 } registro;
 
+/**
+ * Função criada para sintetizar checagem de erros.
+ */
 int guard(int n, char * err) {
 	if (n == -1) {
 		perror(err);
@@ -66,6 +86,10 @@ int guard(int n, char * err) {
 	return n;
 }
 
+/**
+ * Função que procura uma incubadora no vetor cujo id seja o mesmo fornecido
+ * para a função.
+ */
 int search(char id[], registro *vec) {
 	for(int i = 0; i <= vec->pos_ultima; i++) {
 		if (strcmp(id, vec->lista[i].id) == 0)
@@ -74,6 +98,11 @@ int search(char id[], registro *vec) {
 	return -1;
 }
 
+/**
+ * Esta função filtra uma conexão recentemente criada. Checa se um sensor
+ * tentando iniciar uma conexão, se ele é de uma incubadora já registrada ou
+ * não. Ou se é o processo de interface tentando estabelecer a conexão.
+ */
 int filtrar(int new_socket, registro *vec) {
 	char temp[24], inc_id[4], hw_id[4], tipo;
 	read(new_socket, temp, 24);
@@ -209,12 +238,11 @@ int main(int argc, char const *argv[])
     char *hello = "Hello from server";
 	registro vetor;
 
+	// Zera todas as posições de memória
 	memset(&vetor, 0, sizeof(registro));
+	// Indica nº de incubadoras registradas igual a 0
 	vetor.pos_ultima = -1;
-	/* for (int i = 0; i < N_INCUBADORAS; i++) {
-		printf("%s\n", vetor.lista[i].id);
-		printf("%s %d %f\n", vetor.lista[i].t_ar.sensor_id, vetor.lista[i].t_ar.socket, vetor.lista[i].t_ar.valor);
-	} */
+
     // Creating socket file descriptor
     server_fd = guard(socket(AF_INET, SOCK_STREAM, 0), "socket failed");
 
@@ -222,6 +250,7 @@ int main(int argc, char const *argv[])
     guard(setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, &opt,
 			sizeof(opt)), "setsockopt error");
 
+	// Estabelece Socket como não bloqueante
 	flags = guard(fcntl(server_fd, F_GETFL), "get socket flags error");
 	guard(fcntl(server_fd, F_SETFL, flags | O_NONBLOCK),
 			"set non-blocking");
@@ -234,24 +263,51 @@ int main(int argc, char const *argv[])
     guard(bind(server_fd, (struct sockaddr *)&address, sizeof(address)),
 			"bind failed");
 
+	// Processo escuta porta 50500
     guard(listen(server_fd, 3), "listen error");
 	while (new_socket < 1) {
+		// Processo aguarda conexão
     	new_socket = accept(server_fd, (struct sockaddr *)&address,
 									(socklen_t*)&addrlen);
 	}
-
+	// Havendo conexão, é necessário analisá-la
 	new_socket = filtrar(new_socket, &vetor);
 
 	while(on != 0) {
 		// Checa se há novas conexões
 		new_socket = accept(server_fd, (struct sockaddr *)&address,
 									(socklen_t*)&addrlen);
+		// Caso haja, analisa a nova conexão
 		if (new_socket > 0)
 			new_socket = filtrar(new_socket, &vetor);
 
+		// Se a interface com o usuário estiver conectada, checa se há comandos
+		if (vetor.cliente.conectado == 1){
+			valread = read(vetor.cliente.socket, temp, 24);
+			if (valread > 0) {
+				if (temp[0] == '4') {
+					char id_get[4] = {0};
+					strcpy(id_get, &temp[1]);
+					id_get[3] = '\0';
+					int index = search(id_get, &vetor);
+					if (index <= vetor.pos_ultima) {
+						char resp[26] = {0};
+						resp[0] = '4';
+						strcpy(&resp[1], vetor.lista[index].id);
+						sprintf(&resp[5], "%.1f\0", vetor.lista[index].t_ar.valor);
+						sprintf(&resp[10], "%.1f\0", vetor.lista[index].umidade.valor);
+						sprintf(&resp[15], "%.1f\0", vetor.lista[index].oxigenacao.valor);
+						sprintf(&resp[20], "%.1f\0", vetor.lista[index].batimentos.valor);
+						send(vetor.cliente.socket, resp, sizeof(resp), 0);
+
+					}
+				}
+			}
+		}
+		// checa se há novas mensagens de sensores das incubadoras
 		for (int i = 0; i <= vetor.pos_ultima; i++) {
 			if(vetor.lista[i].t_ar.socket > 0) {
-				valread = read(vetor.lista[i].t_ar.socket, temp, 16);
+				valread = read(vetor.lista[i].t_ar.socket, temp, 24);
 				if (valread > 0) {
 					sscanf (&temp[8],"%f",&vetor.lista[i].t_ar.valor);
 					if (vetor.lista[i].t_ar.valor > TEMP_MAX - 0.5) {
@@ -373,14 +429,14 @@ int main(int argc, char const *argv[])
 				valread = 0;
 			}
 		}
+		// Trecho abaixo serve para checar se a conexão inicial é feita
+		/*
 		printf("%hd\n", vetor.cliente.conectado);
 		printf("%s\n", vetor.lista[0].id);
 		printf("Hw id: %s; Valor: %f\n", vetor.lista[0].batimentos.sensor_id, vetor.lista[0].batimentos.valor);
 		printf("%s\n", vetor.lista[1].id);
 		printf("Hw id: %s; Valor: %f\n", vetor.lista[1].t_ar.sensor_id, vetor.lista[1].t_ar.valor);
-		//getchar();
+		*/
 	}
-
-
     return 0;
 }
