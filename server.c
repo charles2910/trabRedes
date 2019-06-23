@@ -19,6 +19,13 @@
 #define UMID_MIN 60
 #define OXI_MIN 85
 
+// Struct para guardar interface
+typedef struct {
+	char buffer[16];
+	int socket;
+	short conectado;
+} interface;
+
 // Struct para guardar sensores
 typedef struct {
 	char sensor_id[4];
@@ -48,6 +55,7 @@ typedef struct {
 typedef struct {
 	incubadora lista[N_INCUBADORAS];
 	int pos_ultima;
+	interface cliente;
 } registro;
 
 int guard(int n, char * err) {
@@ -69,6 +77,16 @@ int search(char id[], registro *vec) {
 int filtrar(int new_socket, registro *vec) {
 	char temp[24], inc_id[4], hw_id[4], tipo;
 	read(new_socket, temp, 24);
+
+	// checa se é conexão do cliente de interface
+	if (temp[0] == '3') {
+		vec->cliente.socket = new_socket;
+		vec->cliente.conectado = 1;
+		int flags = guard(fcntl(new_socket, F_GETFL), "get socket flags error");
+		guard(fcntl(new_socket, F_SETFL, flags | O_NONBLOCK),
+				"set non-blocking");
+		return 0;
+	}
 	// checa se é uma requisição de conexão
 	if(temp[0] != '1') {
 		perror("Erro no protocolo de conexão");
@@ -190,6 +208,7 @@ int main(int argc, char const *argv[])
     char temp[24] = {0};
     char *hello = "Hello from server";
 	registro vetor;
+
 	memset(&vetor, 0, sizeof(registro));
 	vetor.pos_ultima = -1;
 	/* for (int i = 0; i < N_INCUBADORAS; i++) {
@@ -235,13 +254,36 @@ int main(int argc, char const *argv[])
 				valread = read(vetor.lista[i].t_ar.socket, temp, 16);
 				if (valread > 0) {
 					sscanf (&temp[8],"%f",&vetor.lista[i].t_ar.valor);
-					if (vetor.lista[i].t_ar.valor > TEMP_MAX - 0.5)
+					if (vetor.lista[i].t_ar.valor > TEMP_MAX - 0.5) {
 						// ligar circulador
-					else if (vetor.lista[i].t_ar.valor < TEMP_MIN + 0.5)
+						if (vetor.lista[i].circulador.atuador_ligado == 0) {
+							vetor.lista[i].circulador.atuador_ligado = 1;
+							char *tmp  = "21\n\0";
+							send(vetor.lista[i].circulador.socket, tmp, sizeof(tmp), 0);
+						}
+					}
+					else if (vetor.lista[i].t_ar.valor < TEMP_MIN + 0.5) {
 						// ligar aquecedor
+						if (vetor.lista[i].aquecedor.atuador_ligado == 0) {
+							vetor.lista[i].aquecedor.atuador_ligado = 1;
+							char *tmp  = "21\n\0";
+							send(vetor.lista[i].aquecedor.socket, tmp, sizeof(tmp), 0);
+						}
+					}
 					else if ((vetor.lista[i].t_ar.valor <  TEMP_MED + 0.5) &&
-								(vetor.lista[i].t_ar.valor <  TEMP_MED - 0.5))
+								(vetor.lista[i].t_ar.valor <  TEMP_MED - 0.5)) {
 						// desligar atuadores
+						if (vetor.lista[i].circulador.atuador_ligado == 1) {
+							vetor.lista[i].circulador.atuador_ligado = 0;
+							char *tmp  = "20\n\0";
+							send(vetor.lista[i].circulador.socket, tmp, sizeof(tmp), 0);
+						}
+						if (vetor.lista[i].aquecedor.atuador_ligado == 1) {
+							vetor.lista[i].aquecedor.atuador_ligado = 0;
+							char *tmp  = "20\n\0";
+							send(vetor.lista[i].aquecedor.socket, tmp, sizeof(tmp), 0);
+						}
+					}
 				}
 				memset(temp, 0, 16);
 				valread = 0;
@@ -250,10 +292,22 @@ int main(int argc, char const *argv[])
 				valread = read(vetor.lista[i].umidade.socket, temp, 16);
 				if (valread > 0) {
 					sscanf (&temp[9],"%f",&vetor.lista[i].umidade.valor);
-					if (vetor.lista[i].umidade.valor > UMID_MAX - 1)
-						// desligar umidificador
-					else if (vetor.lista[i].umidade.valor < UMID_MIN + 1)
-						// ligar umidificador
+					if (vetor.lista[i].umidade.valor > UMID_MAX - 1) {
+						if (vetor.lista[i].umidificador.atuador_ligado == 1) {
+							// Desligar Umidificador
+							vetor.lista[i].umidificador.atuador_ligado = 0;
+							char *tmp  = "20\n\0";
+							send(vetor.lista[i].umidificador.socket, tmp, sizeof(tmp), 0);
+						}
+					}
+					else if (vetor.lista[i].umidade.valor < UMID_MIN + 1) {
+						// Ligar Umidificador
+						if (vetor.lista[i].umidificador.atuador_ligado == 0) {
+							vetor.lista[i].umidificador.atuador_ligado = 1;
+							char *tmp  = "21\n\0";
+							send(vetor.lista[i].umidificador.socket, tmp, sizeof(tmp), 0);
+						}
+					}
 				}
 				memset(temp, 0, 16);
 				valread = 0;
@@ -262,8 +316,10 @@ int main(int argc, char const *argv[])
 				valread = read(vetor.lista[i].oxigenacao.socket, temp, 16);
 				if (valread > 0) {
 					sscanf (&temp[9],"%f",&vetor.lista[i].oxigenacao.valor);
-					if (vetor.lista[i].oxigenacao.valor < OXI_MIN)
+					if (vetor.lista[i].oxigenacao.valor < OXI_MIN) {
 						// Soar alarme
+						// TODO
+					}
 				}
 				memset(temp, 0, 16);
 				valread = 0;
@@ -272,8 +328,9 @@ int main(int argc, char const *argv[])
 				valread = read(vetor.lista[i].batimentos.socket, temp, 16);
 				if (valread > 0) {
 					sscanf (&temp[9],"%f",&vetor.lista[i].batimentos.valor);
-					if (vetor.lista[i].oxigenacao.valor < BAT_MIN)
+					if (vetor.lista[i].oxigenacao.valor < BAT_MIN);
 						// Soar alarme
+						// TODO
 				}
 				memset(temp, 0, 16);
 				valread = 0;
@@ -303,6 +360,7 @@ int main(int argc, char const *argv[])
 				valread = 0;
 			}
 		}
+		printf("%hd\n", vetor.cliente.conectado);
 		printf("%s\n", vetor.lista[0].id);
 		printf("Hw id: %s; Valor: %f\n", vetor.lista[0].t_ar.sensor_id, vetor.lista[0].t_ar.valor);
 		printf("%s\n", vetor.lista[1].id);

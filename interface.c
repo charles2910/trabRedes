@@ -22,9 +22,8 @@ int main(int argc, char const *argv[])
 {
     int sock = 0, valread = 1, up = 1;
     struct sockaddr_in serv_addr;
-    char *id = "10015671\n\0";
+    char *id = "3\n\0";
 	char *message = malloc(16 * sizeof(char));
-	char *hello1 = "1001567137.1\n\0";
     char buffer[24] = {0};
 	memset(message, 0, 16);
 
@@ -45,9 +44,21 @@ int main(int argc, char const *argv[])
 	guard(fcntl(sock, F_SETFL, flags | O_NONBLOCK),
 			"set non-blocking");
 
-	send(sock , id , strlen(id) , 0 );
-	sleep(3);
-	send(sock , hello1 , strlen(hello1) , 0 );
+	send(sock , id , strlen(id) , 0);
+
+	/* int fd1 = fileno(stdin);
+	int fd2 = fileno(stdout);
+	printf("%d %d\n", fd1, fd2); */
+
+	int flags1;
+	flags1 = fcntl(fd, F_GETFL, 0);
+	flags1 |= O_NONBLOCK;
+	fcntl(0, F_SETFL, flags1);
+
+	printf("Conexão com o gerenciador estabelecida\n");
+	printf("Digite o id da incubadora cujos parâmetros devem ser consultados.\n");
+	printf("(id: 001, 002, 003 ...)\n");
+
     while(up > 0) {
     	gets(message);
 	    send(sock , message , strlen(message) , 0 );
