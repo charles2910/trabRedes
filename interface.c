@@ -50,8 +50,9 @@ int main(int argc, char const *argv[])
 	int fd2 = fileno(stdout);
 	printf("%d %d\n", fd1, fd2); */
 
+	// setando stdin como nao bloqueante
 	int flags1;
-	flags1 = fcntl(fd, F_GETFL, 0);
+	flags1 = fcntl(0, F_GETFL, 0);
 	flags1 |= O_NONBLOCK;
 	fcntl(0, F_SETFL, flags1);
 
@@ -61,11 +62,40 @@ int main(int argc, char const *argv[])
 
     while(up > 0) {
     	gets(message);
-	    send(sock , message , strlen(message) , 0 );
-	    printf("Hello message sent\n");
-	    valread = read( sock , buffer, 16);
-	    printf("%s\n",buffer );
-		memset(buffer, 0, 16);
+		if(message[0] != 0) {
+	    	send(sock , message , strlen(message) , 0 );
+	    	printf("Get parameters message sent\n");
+			memset(message, 0, 16);
+		}
+	    valread = read( sock , buffer, 24);
+		if (valread > 0) {
+			if (buffer[0] == '4') {
+				char inc[4] = {0}, t_ar ={0}, umid = {0}, oxig = {0}, bat = {0};
+
+				strncpy(inc, buffer[1], 4);
+				strncpy(t_ar, buffer[4], 4);
+				strncpy(umid, buffer[8], 4);
+				strncpy(oxig, buffer[12], 4);
+				strncpy(bat, buffer[16], 4);
+
+	    		printf("Parâmetros na incubadora %s\n",buffer);
+				printf("Temperatura: %s\n",buffer);
+				printf("Umidade: %s\n",buffer);
+				printf("Oxigenação: %s\n",buffer);
+				printf("Batimentos: %s\n",buffer);
+				memset(buffer, 0, 16);
+			}
+			else if (buffer[0] == '5') {
+				char bat_id[4] = {0};
+				strcpy(bat_id, &buffer[1]);
+				printf("Alerta Urgente\nBatimentos baixos na incubadora %s\n", bat_id);
+			}
+			else if (buffer[0] == '6') {
+				char oxi_id[4] = {0};
+				strcpy(oxi_id, buffer[1]);
+				printf("Alerta Urgente\nOxigenação baixa na incubadora %s\n", oxi_id);
+			}
+		}
     }
     return 0;
 }

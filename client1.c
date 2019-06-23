@@ -22,9 +22,9 @@ int main(int argc, char const *argv[])
 {
     int sock = 0, valread = 1, up = 1;
     struct sockaddr_in serv_addr;
-    char *id = "10015671\n\0";
+    char *id = "10015674\n\0";
 	char *message = malloc(16 * sizeof(char));
-	char *hello1 = "1001567137.1\n\0";
+	char *hello1 = "1001567480.1\n\0";
     char buffer[24] = {0};
 	memset(message, 0, 16);
 
