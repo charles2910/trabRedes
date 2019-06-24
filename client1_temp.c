@@ -70,9 +70,8 @@ int main(int argc, char const *argv[])
 		// Aguarda um valor colocado pelo usuario => simulação
     	gets(message);
 	    send(sock , message , strlen(message) , 0 );
-	    printf("Hello message sent\n");
+	    printf("Sensor read sent\n");
 	    valread = read( sock , buffer, 16);
-	    printf("%s\n",buffer );
 		memset(buffer, 0, 16);
     }
     return 0;

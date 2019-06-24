@@ -1,5 +1,5 @@
 
-
+// Client side C/C++ program to demonstrate Socket programming
 #include <unistd.h>
 #include <stdio.h>
 #include <errno.h>
@@ -23,16 +23,22 @@ int guard(int n, char * err) {
 
 int main(int argc, char const *argv[])
 {
-    int sock = 0, valread = 1, up = 1, on = 0;
+    int sock = 0, valread = 1, up = 1;
     struct sockaddr_in serv_addr;
 	/**
 	 * Mensagem inicial:
 	 * código '1', estabelecimento de conexão
-	 * código '001', id da incubadora
-	 * código '123', id do sensor
-	 * código '5', indica que é um atuador (aquecedor)
+	 * código '002', id da incubadora
+	 * código '227', id do sensor
+	 * código '2', indica que é um sensor de umidade
 	 */
-    char *id = "10011235\n\0";
+    char *id = "10022272\n\0";
+	/**
+	 * Primeira mensagem:
+	 * código '10022272', mesma estrutura da mensagem inicial
+	 * código '78', indica a leitura do sensor
+	 */
+	char *hello1 = "1002227278\n\0";
 	char *message = malloc(16 * sizeof(char));
     char buffer[24] = {0};
 	memset(message, 0, 16);
@@ -55,21 +61,17 @@ int main(int argc, char const *argv[])
 			"set non-blocking");
 	// Envia mensagem inicial
 	send(sock , id , strlen(id) , 0 );
+	// Aguarda 3 segundos
+	sleep(3);
+	// Envia primeira mensagem
+	send(sock , hello1 , strlen(hello1) , 0 );
 
     while(up > 0) {
-		// Espera comando para ligar aquecedor
+		// Aguarda um valor colocado pelo usuario => simulação
+    	gets(message);
+	    send(sock , message , strlen(message) , 0 );
+	    printf("Sensor read sent\n");
 	    valread = read( sock , buffer, 16);
-		if (buffer[0] == '2') {
-			//recebeu um comando
-			if (buffer[1] == '1') {
-				on = 1;
-				printf("Atuador ligado\n");
-			} else if (buffer[1] == '0') {
-				on = 0;
-				printf("Atuador desligado\n");
-			}
-
-		}
 		memset(buffer, 0, 16);
     }
     return 0;

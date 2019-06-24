@@ -28,11 +28,11 @@ int main(int argc, char const *argv[])
 	/**
 	 * Mensagem inicial:
 	 * código '1', estabelecimento de conexão
-	 * código '001', id da incubadora
-	 * código '123', id do sensor
+	 * código '002', id da incubadora
+	 * código '423', id do sensor
 	 * código '5', indica que é um atuador (aquecedor)
 	 */
-    char *id = "10011235\n\0";
+    char *id = "10024235\n\0";
 	char *message = malloc(16 * sizeof(char));
     char buffer[24] = {0};
 	memset(message, 0, 16);

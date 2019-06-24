@@ -1,5 +1,5 @@
 
-
+// Client side C/C++ program to demonstrate Socket programming
 #include <unistd.h>
 #include <stdio.h>
 #include <errno.h>
@@ -28,11 +28,11 @@ int main(int argc, char const *argv[])
 	/**
 	 * Mensagem inicial:
 	 * código '1', estabelecimento de conexão
-	 * código '001', id da incubadora
-	 * código '123', id do sensor
-	 * código '5', indica que é um atuador (aquecedor)
+	 * código '002', id da incubadora
+	 * código '860', id do sensor
+	 * código '6', indica que é um atuador umidificador
 	 */
-    char *id = "10011235\n\0";
+    char *id = "10028606\n\0";
 	char *message = malloc(16 * sizeof(char));
     char buffer[24] = {0};
 	memset(message, 0, 16);
@@ -57,7 +57,7 @@ int main(int argc, char const *argv[])
 	send(sock , id , strlen(id) , 0 );
 
     while(up > 0) {
-		// Espera comando para ligar aquecedor
+		// Espera comando para ligar o umidificador
 	    valread = read( sock , buffer, 16);
 		if (buffer[0] == '2') {
 			//recebeu um comando

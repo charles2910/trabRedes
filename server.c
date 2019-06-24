@@ -13,7 +13,7 @@
 #define N_INCUBADORAS 64
 #define TEMP_MAX 37
 #define TEMP_MIN 34
-#define TEMP_MED (TEMP_MAX + TEMP_MIN) / 2
+#define TEMP_MED ((TEMP_MAX + TEMP_MIN) / 2)
 #define BAT_MIN 60
 #define UMID_MAX 85
 #define UMID_MIN 60
@@ -209,7 +209,7 @@ int filtrar(int new_socket, registro *vec) {
 			vec->lista[pos].aquecedor.socket = new_socket;
 		}
 		else if(tipo == '6') {
-			if (vec->lista[pos].aquecedor.atuador_id[0] != NULL) {
+			if (vec->lista[pos].umidificador.atuador_id[0] != NULL) {
 				perror("Hardware já cadastrado");
 				return -1;
 			}
@@ -217,7 +217,7 @@ int filtrar(int new_socket, registro *vec) {
 			vec->lista[pos].umidificador.socket = new_socket;
 		}
 		else if(tipo == '7') {
-			if (vec->lista[pos].aquecedor.atuador_id[0] != NULL) {
+			if (vec->lista[pos].circulador.atuador_id[0] != NULL) {
 				perror("Hardware já cadastrado");
 				return -1;
 			}
@@ -327,7 +327,7 @@ int main(int argc, char const *argv[])
 						}
 					}
 					else if ((vetor.lista[i].t_ar.valor <  TEMP_MED + 0.5) &&
-								(vetor.lista[i].t_ar.valor <  TEMP_MED - 0.5)) {
+								(vetor.lista[i].t_ar.valor >  TEMP_MED - 0.5)) {
 						// desligar atuadores
 						if (vetor.lista[i].circulador.atuador_ligado == 1) {
 							vetor.lista[i].circulador.atuador_ligado = 0;

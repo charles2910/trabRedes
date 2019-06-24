@@ -23,7 +23,7 @@ int guard(int n, char * err) {
 
 int main(int argc, char const *argv[])
 {
-    int sock = 0, valread = 1, up = 1;
+    int sock = 0, valread = 1, up = 1, on = 0;
     struct sockaddr_in serv_addr;
 	/**
 	 * Mensagem inicial:
@@ -57,12 +57,19 @@ int main(int argc, char const *argv[])
 	send(sock , id , strlen(id) , 0 );
 
     while(up > 0) {
-		// Aguarda um valor colocado pelo usuario => simulação
-    	gets(message);
-	    send(sock , message , strlen(message) , 0 );
-	    printf("Hello message sent\n");
+		// Espera comando para ligar o umidificador
 	    valread = read( sock , buffer, 16);
-	    printf("%s\n",buffer );
+		if (buffer[0] == '2') {
+			//recebeu um comando
+			if (buffer[1] == '1') {
+				on = 1;
+				printf("Atuador ligado\n");
+			} else if (buffer[1] == '0') {
+				on = 0;
+				printf("Atuador desligado\n");
+			}
+
+		}
 		memset(buffer, 0, 16);
     }
     return 0;
