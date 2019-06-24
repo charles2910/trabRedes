@@ -29,16 +29,16 @@ int main(int argc, char const *argv[])
 	 * Mensagem inicial:
 	 * código '1', estabelecimento de conexão
 	 * código '001', id da incubadora
-	 * código '567', id do sensor
-	 * código '4', indica que é um sensor de batimentos cardíacos
+	 * código '507', id do sensor
+	 * código '2', indica que é um sensor de umidade
 	 */
-    char *id = "10015674\n\0";
+    char *id = "10015072\n\0";
 	/**
 	 * Primeira mensagem:
-	 * código '10015674', mesma estrutura da mensagem inicial
-	 * código '80.1', indica a leitura do sensor
+	 * código '10015072', mesma estrutura da mensagem inicial
+	 * código '80', indica a leitura do sensor
 	 */
-	char *hello1 = "1001567480.1\n\0";
+	char *hello1 = "1001507280\n\0";
 	char *message = malloc(16 * sizeof(char));
     char buffer[24] = {0};
 	memset(message, 0, 16);

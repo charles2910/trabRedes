@@ -11,8 +11,8 @@
 
 #define PORT 50500
 #define N_INCUBADORAS 64
-#define TEMP_MAX 38
-#define TEMP_MIN 35
+#define TEMP_MAX 37
+#define TEMP_MIN 34
 #define TEMP_MED (TEMP_MAX + TEMP_MIN) / 2
 #define BAT_MIN 60
 #define UMID_MAX 85

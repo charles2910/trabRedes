@@ -29,16 +29,10 @@ int main(int argc, char const *argv[])
 	 * Mensagem inicial:
 	 * código '1', estabelecimento de conexão
 	 * código '001', id da incubadora
-	 * código '567', id do sensor
-	 * código '4', indica que é um sensor de batimentos cardíacos
+	 * código '560', id do sensor
+	 * código '6', indica que é um atuador umidificador
 	 */
-    char *id = "10015674\n\0";
-	/**
-	 * Primeira mensagem:
-	 * código '10015674', mesma estrutura da mensagem inicial
-	 * código '80.1', indica a leitura do sensor
-	 */
-	char *hello1 = "1001567480.1\n\0";
+    char *id = "10015606\n\0";
 	char *message = malloc(16 * sizeof(char));
     char buffer[24] = {0};
 	memset(message, 0, 16);
@@ -61,10 +55,6 @@ int main(int argc, char const *argv[])
 			"set non-blocking");
 	// Envia mensagem inicial
 	send(sock , id , strlen(id) , 0 );
-	// Aguarda 3 segundos
-	sleep(3);
-	// Envia primeira mensagem
-	send(sock , hello1 , strlen(hello1) , 0 );
 
     while(up > 0) {
 		// Aguarda um valor colocado pelo usuario => simulação
